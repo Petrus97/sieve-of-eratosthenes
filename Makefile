@@ -1,5 +1,6 @@
-CC=clang
+CC=gcc
 CFLAGS=-g -Wall -Werror -Wpedantic -DDEBUG=1
+LDFLAGS=-lm
 
 SRC_DIR=./src
 INC_DIR=./include
@@ -10,6 +11,9 @@ OBJS=$(patsubst %.c, %.o, $(SRCS))
 BIN=eratosthenes
 
 all: $(BIN)
+
+omp: CFLAGS+=-fopenmp
+omp: $(BIN)
 
 release: CFLAGS=-O3
 release: $(BIN)
