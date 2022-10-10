@@ -9,7 +9,7 @@
 #include <math.h>
 
 /**
- * @brief Sequential implementation of the Sieve of Erathostens
+ * @brief Sequential/OpenMP implementation of the Sieve of Erathostens
  *
  */
 
@@ -87,28 +87,42 @@ int main(int argc, char *argv[])
     uint64_t k = 2;
 #ifdef _OPENMP
     uint64_t sqrt_max = (uint64_t)sqrt(max);
-    while (square(k) < sqrt_max)
+    while (square(k) <= sqrt_max)
     {
         mark(natural_numbers, sqrt_max, k);
         find_smallest(natural_numbers, sqrt_max, &k);
     }
-#pragma omp parallel default(none) shared(natural_numbers, sqrt_max, max) firstprivate(k)
-{
-    #pragma omp for schedule(static)
-    for (uint64_t i = sqrt_max + 1; i < max; i++)
+#pragma omp parallel for default(none) shared(natural_numbers, sqrt_max, max)
+    for (uint64_t j = 2; j <= sqrt_max; j++)
     {
-        for (uint64_t j = 2; j <= sqrt_max; j++)
+        if (!natural_numbers[j]) // unmarked
         {
-            if(!natural_numbers[j]) // unmarked
-            {
-                if(i % j == 0)
-                    natural_numbers[i] = true;
-            }
+                for (uint64_t i = sqrt_max + 1; i < max; i++)
+                {
+                    if (i % j == 0)
+                        natural_numbers[i] = true;
+                }
         }
     }
-}
+
+// #pragma omp parallel default(none) shared(natural_numbers, sqrt_max, max) firstprivate(k)
+//     {
+// #pragma omp for schedule(static) collapse(2)
+//         for (uint64_t i = sqrt_max + 1; i < max; i++)
+//         {
+//             // printf("%d - i: %lu\n", omp_get_thread_num(), i);
+//             for (uint64_t j = 2; j <= sqrt_max; j++)
+//             {
+//                 if (!natural_numbers[j]) // unmarked
+//                 {
+//                     if (i % j == 0)
+//                         natural_numbers[i] = true;
+//                 }
+//             }
+//         }
+//     }
 #else
-    while (square(k) < max)
+    while (square(k) <= max)
     {
         mark(natural_numbers, max, k);
         find_smallest(natural_numbers, max, &k);
