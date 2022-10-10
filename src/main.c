@@ -105,22 +105,6 @@ int main(int argc, char *argv[])
         }
     }
 
-// #pragma omp parallel default(none) shared(natural_numbers, sqrt_max, max) firstprivate(k)
-//     {
-// #pragma omp for schedule(static) collapse(2)
-//         for (uint64_t i = sqrt_max + 1; i < max; i++)
-//         {
-//             // printf("%d - i: %lu\n", omp_get_thread_num(), i);
-//             for (uint64_t j = 2; j <= sqrt_max; j++)
-//             {
-//                 if (!natural_numbers[j]) // unmarked
-//                 {
-//                     if (i % j == 0)
-//                         natural_numbers[i] = true;
-//                 }
-//             }
-//         }
-//     }
 #else
     while (square(k) <= max)
     {
