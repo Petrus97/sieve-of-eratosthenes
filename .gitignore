@@ -1,3 +1,5 @@
 .vscode/
 eratosthenes
-
+eratosthenes_pthread
+eratosthenes_openmp
+objs/
