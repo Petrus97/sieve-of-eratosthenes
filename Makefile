@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-g -Wall -Werror -Wpedantic -DDEBUG=1 -fopenmp
-LDFLAGS=-lm -lpthreads
+LDFLAGS=-lm -lpthread
 
 SRC_DIR=./src
 INC_DIR=./include
