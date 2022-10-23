@@ -1,4 +1,5 @@
 CC=gcc
+MPICC=mpicc
 CFLAGS=-g -Wall -Werror -Wpedantic -DDEBUG=1 -fopenmp
 LDFLAGS=-lm -lpthread
 
