@@ -53,7 +53,7 @@ void find_smallest(const char *n_numbers, uint64_t max, uint64_t *k)
 
 void print_primes(const char *n_numbers, uint64_t max)
 {
-    if (max < 100)
+    if (max <= 100)
     {
         for (uint64_t i = 0; i < max; i++)
         {
@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
     }
     printf("%lu\n", max);
     // Create a list of natural numbers 1..Max
-    char *natural_numbers = (char *)calloc(max, sizeof(char)); // Linux will not allocate the memory until it's used
+    char *natural_numbers = (char *)calloc(max + 1, sizeof(char)); // Linux will not allocate the memory until it's used
     // 0 (false) -> unmarked
     // 1 (true) -> marked
     memset(natural_numbers, false, max); // set all unmarked
@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
     {
         if (!natural_numbers[j]) // unmarked
         {
-                for (uint64_t i = sqrt_max + 1; i < max; i++)
+                for (uint64_t i = sqrt_max + 1; i <= max; i++)
                 {
                     if (i % j == 0)
                         natural_numbers[i] = true;

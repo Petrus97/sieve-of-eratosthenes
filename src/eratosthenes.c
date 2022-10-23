@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
     }
     printf("%lu\n", max);
     // Create a list of natural numbers 1..Max
-    char *natural_numbers = (char *)calloc(max, sizeof(char)); // Linux will not allocate the memory until it's used
+    char *natural_numbers = (char *)calloc(max + 1, sizeof(char)); // Linux will not allocate the memory until it's used
     // 0 (false) -> unmarked
     // 1 (true) -> marked
     memset(natural_numbers, false, max); // set all unmarked
