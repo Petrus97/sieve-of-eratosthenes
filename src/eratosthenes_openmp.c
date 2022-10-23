@@ -94,18 +94,18 @@ int main(int argc, char *argv[])
         mark(natural_numbers, sqrt_max, k);
         find_smallest(natural_numbers, sqrt_max, &k);
     }
-#pragma omp parallel for default(none) shared(natural_numbers, sqrt_max, max)
-    for (uint64_t j = 2; j <= sqrt_max; j++)
-    {
-        if (!natural_numbers[j]) // unmarked
+        for (uint64_t j = 2; j <= sqrt_max; j++)
         {
-                for (uint64_t i = sqrt_max + 1; i <= max; i++)
-                {
-                    if (i % j == 0)
-                        natural_numbers[i] = true;
-                }
+            if (!natural_numbers[j]) // unmarked
+            {
+                #pragma omp parallel for default(none) shared(natural_numbers, sqrt_max, max) firstprivate(j)
+                    for (uint64_t i = sqrt_max + 1; i <= max; i++)
+                    {
+                        if (i % j == 0)
+                            natural_numbers[i] = true;
+                    }
+            }
         }
-    }
 
 #else
     while (square(k) <= max)
