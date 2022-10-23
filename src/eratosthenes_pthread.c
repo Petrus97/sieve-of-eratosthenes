@@ -78,13 +78,12 @@ typedef struct
 void *mark_chunk(void *parameters)
 {
     th_data *data = (th_data *)parameters;
-    printf("[%ld] - start: %ld - end: %ld\n", data->id, data->start, data->end);
     uint64_t sqrt_max = (uint64_t)sqrt(data->max);
     for (uint64_t j = 2; j <= sqrt_max; j++)
     {
         if (!data->n_numbers[j]) // unmarked
         {
-            for (uint64_t i = data->start; i < data->end; i++)
+            for (uint64_t i = data->start; i <= (data->end > data->max ? data->max : data->end); i++)
             {
                 if (i % j == 0)
                     data->n_numbers[i] = true;
@@ -111,35 +110,38 @@ int main(int argc, char *argv[])
     }
     printf("%lu\n", max);
     // Create a list of natural numbers 1..Max
-    char *natural_numbers = (char *)calloc(max, sizeof(char)); // Linux will not allocate the memory until it's used
+    char *natural_numbers = (char *)calloc(max + 1, sizeof(char)); // Linux will not allocate the memory until it's used
     // 0 (false) -> unmarked
     // 1 (true) -> marked
     memset(natural_numbers, false, max); // set all unmarked
 
     // Prepare the pthreads
     pthread_t *threads = (pthread_t *)malloc(sizeof(pthread_t) * n_threads);
+    uint64_t k = 2;
+    uint64_t sqrt_max = (uint64_t)sqrt(max);
+    int chunk = (max - sqrt_max) / n_threads;
+    int remaining = max % n_threads;
 
     // BENCHMARK
     double start, end;
     GET_TIME(start);
-    uint64_t k = 2;
-    uint64_t sqrt_max = (uint64_t)sqrt(max);
     while (square(k) <= sqrt_max)
     {
         mark(natural_numbers, sqrt_max, k);
         find_smallest(natural_numbers, sqrt_max, &k);
     }
     // Pthread part
-    int chunk = (max - sqrt_max) / n_threads;
+    int next_start = sqrt_max + 1;
     for (size_t id = 0; id < n_threads; id++)
     {
         th_data *data = (th_data *)calloc(sizeof(th_data), 1);
         data->n_numbers = natural_numbers;
         data->max = max;
-        data->start = (sqrt_max + 1) + (chunk * id);
-        data->end = (sqrt_max + 1) + (chunk * id) + (chunk - 1);
+        data->start = next_start;
+        data->end = next_start + (chunk) + (remaining-- > 0 ? 1 : 0);
         data->id = id;
         pthread_create(&threads[id], NULL, mark_chunk, (void*)data);
+        next_start = data->end;
     }
 
     GET_TIME(end);
