@@ -143,14 +143,13 @@ int main(int argc, char *argv[])
         pthread_create(&threads[id], NULL, mark_chunk, (void*)data);
         next_start = data->end;
     }
-
-    GET_TIME(end);
-    printf("Elapsed: %lf\n", end - start);
-
+    // Wait the threads finish
     for (size_t i = 0; i < n_threads; i++)
     {
         pthread_join(threads[i], NULL);
     }
+    GET_TIME(end);
+    printf("Elapsed: %lf\n", end - start);
     free(threads);
 
     print_primes(natural_numbers, max);
