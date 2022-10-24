@@ -96,12 +96,15 @@ void init_tmp_array(int *buf, int dim)
 
 int main(int argc, char *argv[])
 {
+    double start_time, end_time;
     // Initialize MPI
     MPI_Init(&argc, &argv);
     int rank = 0;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     int comm_size = 1;
     MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+    MPI_Barrier(MPI_COMM_WORLD); // To collect time correctly
+    start_time = MPI_Wtime();
     uint64_t max;
     if (argc < 2)
     {
@@ -114,7 +117,7 @@ int main(int argc, char *argv[])
     {
         max = strtoul(argv[1], NULL, 10);
     }
-    printf("%lu\n", max);
+    // printf("%lu\n", max);
     uint64_t sqrt_max = (uint64_t)sqrt(max);
 
     /* Create a list of natural numbers 1..Max
@@ -144,7 +147,7 @@ int main(int argc, char *argv[])
     uint64_t end = (sqrt_max + 1) + BLOCK_HIGH(rank, comm_size, n);
     uint64_t blk_size = BLOCK_SIZE(rank, comm_size, n);
 
-    printf("[%d] low: %ld high: %ld size: %ld\n", rank, start, end, blk_size);
+    // printf("[%d] low: %ld high: %ld size: %ld\n", rank, start, end, blk_size);
 
     // Send the tmp array to the master node (that will concatenate)
     if (rank != MASTER_NODE)
@@ -231,9 +234,12 @@ int main(int argc, char *argv[])
         }
     }
     MPI_Barrier(MPI_COMM_WORLD);
+    end_time = MPI_Wtime();
     if (rank == 0)
         print_primes(natural_numbers, max);
 
     free(natural_numbers);
     MPI_Finalize();
+    if(rank == 0)
+        printf("Elapsed %f\n", end_time - start_time);
 }
