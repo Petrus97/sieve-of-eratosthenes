@@ -12,17 +12,16 @@ OBJS=$(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 
 BINS := $(patsubst $(SRC_DIR)/%.c,%,$(SRCS))
 
-all: $(BINS)
+all: $(BINS) # TODO mpi does not compile with gcc, need to remove from targets
 
 release: CFLAGS=-O3 -Wall -Werror -Wpedantic -fopenmp
 release: $(BINS)
 
+mpi: CC:=$(MPICC)
+mpi: $(BINS)
+
 $(BINS): %: $(OBJ_DIR)/%.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) -I$(INC_DIR)
-
-test:
-	echo $(OBJS)
-	echo $(BINS)
 
 $(OBJS): $(OBJ_DIR)/%.o:$(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@ -I$(INC_DIR)
