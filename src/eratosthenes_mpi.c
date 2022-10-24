@@ -77,14 +77,22 @@ void print_primes(const char *n_numbers, uint64_t max)
     }
 }
 
-void print_array(void *buf, int dim, int rank)
+void print_array(int *buf, int dim, int rank)
 {
-    int *tmp = (int *)buf;
     for (size_t i = 0; i < dim; i++)
     {
-        printf("[%ld]%d ", i + rank, tmp[i]);
+        printf("[%ld]%d ", i + rank, buf[i]);
     }
     printf("\n");
+}
+
+void init_tmp_array(int* buf, int dim)
+{
+    for (size_t i = 0; i < dim; i++)
+    {
+        buf[i] = false;
+    }
+    
 }
 
 int main(int argc, char *argv[])
@@ -103,7 +111,9 @@ int main(int argc, char *argv[])
         1 (true) -> marked
     */
     char *natural_numbers = (char *)malloc((max + 1) * sizeof(char));
-    memset(natural_numbers, false, max); // set all unmarked
+    memset(natural_numbers, false, max + 1); // set all unmarked
+
+    // print_array(natural_numbers, max+1, rank);
 
     /*
         1) Each process allocates the array of prime numbers and calculate the sqrt of them.
@@ -129,15 +139,20 @@ int main(int argc, char *argv[])
     if (rank != MASTER_NODE)
     {
         int *tmp_array = (int *)malloc(blk_size * sizeof(int)); // tmp array to send // BUG Does not work with char or uint8 arrays
-        memset(tmp_array, false, blk_size);
+        memset(tmp_array, false, blk_size * sizeof(int)); // BUG memset does not set all the 
         if (tmp_array == NULL)
         {
             printf("Error allocate memory!");
         }
-        else
-        {
-            print_array(tmp_array, blk_size, rank);
-        }
+        // else
+        // {
+        //     printf("Rank[%d]: ", rank);
+        //     for (size_t i = 0; i < blk_size; i++)
+        //     {
+        //         printf("%d ", tmp_array[i]);
+        //     }
+        //     printf("\n");
+        // }
         // Each process calculate its prime numbers
         for (uint64_t j = 2; j <= sqrt_max; j++)
         {
@@ -202,7 +217,7 @@ int main(int argc, char *argv[])
             }
             // Receive the array in the allocated buffer
             MPI_Recv(tmp, dim, MPI_INT, id, COMM_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            print_array(tmp, dim, start_idx);
+            // print_array(tmp, dim, start_idx);
             for (size_t i = 0; i < dim; i++)
             {
                 // printf("%ld ", start_idx + i);
