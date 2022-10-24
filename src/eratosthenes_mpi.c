@@ -86,13 +86,12 @@ void print_array(int *buf, int dim, int rank)
     printf("\n");
 }
 
-void init_tmp_array(int* buf, int dim)
+void init_tmp_array(int *buf, int dim)
 {
     for (size_t i = 0; i < dim; i++)
     {
         buf[i] = false;
     }
-    
 }
 
 int main(int argc, char *argv[])
@@ -103,7 +102,19 @@ int main(int argc, char *argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     int comm_size = 1;
     MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
-    uint64_t max = 100;
+    uint64_t max;
+    if (argc < 2)
+    {
+        usage();
+        if (rank == MASTER_NODE)
+            MPI_Finalize();
+        exit(0);
+    }
+    if (argc == 2)
+    {
+        max = strtoul(argv[1], NULL, 10);
+    }
+    printf("%lu\n", max);
     uint64_t sqrt_max = (uint64_t)sqrt(max);
 
     /* Create a list of natural numbers 1..Max
@@ -133,26 +144,17 @@ int main(int argc, char *argv[])
     uint64_t end = (sqrt_max + 1) + BLOCK_HIGH(rank, comm_size, n);
     uint64_t blk_size = BLOCK_SIZE(rank, comm_size, n);
 
-    // printf("[%d] low: %ld high: %ld size: %ld\n", rank, start, end, blk_size);
+    printf("[%d] low: %ld high: %ld size: %ld\n", rank, start, end, blk_size);
 
     // Send the tmp array to the master node (that will concatenate)
     if (rank != MASTER_NODE)
     {
         int *tmp_array = (int *)malloc(blk_size * sizeof(int)); // tmp array to send // BUG Does not work with char or uint8 arrays
-        memset(tmp_array, false, blk_size * sizeof(int)); // BUG memset does not set all the 
+        memset(tmp_array, false, blk_size * sizeof(int));       // BUG memset does not set all the
         if (tmp_array == NULL)
         {
             printf("Error allocate memory!");
         }
-        // else
-        // {
-        //     printf("Rank[%d]: ", rank);
-        //     for (size_t i = 0; i < blk_size; i++)
-        //     {
-        //         printf("%d ", tmp_array[i]);
-        //     }
-        //     printf("\n");
-        // }
         // Each process calculate its prime numbers
         for (uint64_t j = 2; j <= sqrt_max; j++)
         {
@@ -210,7 +212,7 @@ int main(int argc, char *argv[])
             // printf("dim %d\n", dim);
 
             // allocates the memory and receive the array
-            int *tmp = (int *)malloc(blk_size * sizeof(int));
+            int *tmp = (int *)malloc(dim * sizeof(int));
             if (tmp == NULL)
             {
                 printf("Error allocate memory!");
