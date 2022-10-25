@@ -184,5 +184,6 @@ int main(int argc, char *argv[])
         print_primes(global_numbers, max);
 
     free(natural_numbers);
+    free(global_numbers);
     MPI_Finalize();
 }
