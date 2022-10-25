@@ -75,6 +75,16 @@ void print_primes(const char *n_numbers, uint64_t max)
         }
         printf("\n");
     }
+    else
+    {
+        int count = 0;
+        for (uint64_t i = 0; i < max; i++)
+        {
+            if (!n_numbers[i])
+                count++;
+        }
+        printf("prime count: %d\n", count);
+    }
 }
 
 void print_array(int *buf, int dim, int rank)
@@ -118,17 +128,8 @@ int main(int argc, char *argv[])
         0 (false) -> unmarked
         1 (true) -> marked
     */
-    char *natural_numbers = NULL;
-    if (rank == MASTER_NODE) // Allocate all the array to collect the results later
-    {
-        natural_numbers = (char *)malloc((max + 1) * sizeof(char));
-        memset(natural_numbers, false, max + 1);
-    }
-    else // slave nodes only need the first numbers computed
-    {
-        natural_numbers = (char *)malloc((sqrt_max + 1) * sizeof(char));
-        memset(natural_numbers, false, sqrt_max + 1);
-    }
+    char *natural_numbers = (char *)malloc(sizeof(char) * (max + 1));
+    memset(natural_numbers, false, max + 1);
     if (natural_numbers == NULL)
     {
         printf("[%d] Error allocating memory\n", rank);
@@ -152,85 +153,31 @@ int main(int argc, char *argv[])
     uint64_t n = max - sqrt_max; // Remaining array
     uint64_t start = (sqrt_max + 1) + BLOCK_LOW(rank, comm_size, n);
     uint64_t end = (sqrt_max + 1) + BLOCK_HIGH(rank, comm_size, n);
-    uint64_t blk_size = BLOCK_SIZE(rank, comm_size, n);
+    // uint64_t blk_size = BLOCK_SIZE(rank, comm_size, n);
 
     // printf("[%d] low: %ld high: %ld size: %ld\n", rank, start, end, blk_size);
 
-    // Send the tmp array to the master node (that will concatenate)
-    if (rank != MASTER_NODE)
+    for (uint64_t j = 2; j <= sqrt_max; j++)
     {
-        char *tmp_array = (char *)malloc(blk_size * sizeof(char)); // tmp array to send
-        memset(tmp_array, false, blk_size * sizeof(char));
-        if (tmp_array == NULL)
+        if (!natural_numbers[j]) // unmarked
         {
-            printf("Error allocate memory!");
-        }
-        // Each process calculate its prime numbers
-        for (uint64_t j = 2; j <= sqrt_max; j++)
-        {
-            if (!natural_numbers[j]) // unmarked
+            for (uint64_t i = start; i <= end; i++)
             {
-                for (uint64_t i = start; i <= end; i++)
+                if (i % j == 0)
                 {
-                    if (i % j == 0)
-                    {
-                        tmp_array[i - start] = true;
-                    }
+                    natural_numbers[i] = true;
                 }
             }
         }
-        // Send the array
-        if (MPI_Send(tmp_array, blk_size, MPI_BYTE, MASTER_NODE, COMM_TAG, MPI_COMM_WORLD) != MPI_SUCCESS)
-        {
-            printf("[%d] failed to send to Master Node\n", rank);
-        }
-        free(tmp_array);
     }
-    else // Master node
-    {
-        // Master process calculates its prima numbers
-        for (uint64_t j = 2; j <= sqrt_max; j++)
-        {
-            if (!natural_numbers[j]) // unmarked
-            {
-                for (uint64_t i = start; i <= end; i++)
-                {
-                    if (i % j == 0)
-                    {
-                        natural_numbers[i] = true;
-                    }
-                }
-            }
-        }
-        // Retrieve the value calculated from the other processes
-        for (int id = 1; id < comm_size; id++)
-        {
-            // printf("[%d] receiving from %d...\n", rank, id);
-            uint64_t start_idx = (sqrt_max + 1) + BLOCK_LOW(id, comm_size, n);
-            int dim;
-            MPI_Status status;
-            // Probe for an incoming message from slave process
-            int ret = MPI_Probe(id, COMM_TAG, MPI_COMM_WORLD, &status);
-            if (ret != MPI_SUCCESS)
-                printf("Failed probing\n");
-            // When probe returns, the status object has the size and other
-            // attributes of the incoming message. Get the message size
-            ret = MPI_Get_count(&status, MPI_BYTE, &dim); // The data type is the type of the data that should count
-            if (ret != MPI_SUCCESS)
-                printf("Failed getting count\n");
-            // printf("dim %d\n", dim);
-
-            // Overwrite the array
-            MPI_Recv(natural_numbers + start_idx, dim, MPI_BYTE, id, COMM_TAG, MPI_COMM_WORLD, &status);
-            printf("Status count %ld dim %d\n", status._ucount, dim);
-        }
-    }
+    char* global_numbers = (char*)malloc(sizeof(char) * (max + 1));
+    MPI_Reduce(natural_numbers, global_numbers, max+1, MPI_BYTE, MPI_BOR, MASTER_NODE, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
     end_time = MPI_Wtime();
     if (rank == 0)
         printf("Elapsed %f\n", end_time - start_time);
     if (rank == 0)
-        print_primes(natural_numbers, max);
+        print_primes(global_numbers, max);
 
     free(natural_numbers);
     MPI_Finalize();
