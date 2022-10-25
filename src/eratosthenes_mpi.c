@@ -220,23 +220,9 @@ int main(int argc, char *argv[])
                 printf("Failed getting count\n");
             // printf("dim %d\n", dim);
 
-            // allocates the memory and receive the array
-            char *tmp = (char *)malloc(dim * sizeof(char));
-            if (tmp == NULL)
-            {
-                printf("Error allocate memory!");
-            }
-            // Receive the array in the allocated buffer
-            MPI_Recv(tmp, dim, MPI_BYTE, id, COMM_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            // print_array(tmp, dim, start_idx);
-            for (size_t i = 0; i < dim; i++)
-            {
-                // printf("%ld ", start_idx + i);
-                natural_numbers[start_idx + i] = tmp[i];
-            }
-            // printf("\n");
-
-            free(tmp);
+            // Overwrite the array
+            MPI_Recv(natural_numbers + start_idx, dim, MPI_BYTE, id, COMM_TAG, MPI_COMM_WORLD, &status);
+            printf("Status count %ld dim %d\n", status._ucount, dim);
         }
     }
     MPI_Barrier(MPI_COMM_WORLD);
