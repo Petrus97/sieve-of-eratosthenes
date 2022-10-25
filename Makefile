@@ -10,15 +10,14 @@ OBJ_DIR=./objs
 SRCS=$(wildcard $(SRC_DIR)/*.c)
 OBJS=$(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 
-BINS := $(patsubst $(SRC_DIR)/%.c,%,$(SRCS))
+MPI_BIN=eratosthenes_mpi
 
-all: $(BINS) # TODO mpi does not compile with gcc, need to remove from targets
+BINS := $(filter-out $(MPI_BIN), $(patsubst $(SRC_DIR)/%.c,%,$(SRCS)))
 
-release: CFLAGS=-O3 -Wall -Werror -Wpedantic -fopenmp
-release: $(BINS)
-
-mpi: CC:=$(MPICC)
-mpi: $(BINS)
+#
+# Sequential, Pthreads and OpenMP compilation
+#
+all: $(BINS)
 
 $(BINS): %: $(OBJ_DIR)/%.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) -I$(INC_DIR)
@@ -26,8 +25,21 @@ $(BINS): %: $(OBJ_DIR)/%.o
 $(OBJS): $(OBJ_DIR)/%.o:$(SRC_DIR)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@ -I$(INC_DIR)
 
+#
+# MPI compilation
+#
+mpi: CC:=$(MPICC)
+mpi: $(MPI_BIN)
+
+$(MPI_BIN): %: $(OBJ_DIR)/%.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) -I$(INC_DIR)
+
+
+release: CFLAGS=-O3 -Wall -Werror -Wpedantic -fopenmp
+release: $(BINS)
+
 check:
 	cppcheck . -I $(INC_DIR)
 
 clean:
-	rm -rf $(BINS) $(OBJ_DIR)/*
+	rm -rf $(BINS) $(MPI_BIN) $(OBJ_DIR)/*
