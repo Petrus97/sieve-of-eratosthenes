@@ -86,14 +86,6 @@ void print_array(int *buf, int dim, int rank)
     printf("\n");
 }
 
-void init_tmp_array(int *buf, int dim)
-{
-    for (size_t i = 0; i < dim; i++)
-    {
-        buf[i] = false;
-    }
-}
-
 int main(int argc, char *argv[])
 {
     double start_time, end_time;
@@ -125,7 +117,11 @@ int main(int argc, char *argv[])
         1 (true) -> marked
     */
     char *natural_numbers = (char *)malloc((max + 1) * sizeof(char));
-    memset(natural_numbers, false, max + 1); // set all unmarked
+    memset(natural_numbers, false, max + 1);
+    if (natural_numbers == NULL)
+    {
+        printf("Error allocating memory\n");
+    }
 
     // print_array(natural_numbers, max+1, rank);
 
@@ -135,8 +131,8 @@ int main(int argc, char *argv[])
     uint64_t k = 2;
     while (square(k) <= sqrt_max)
     {
-        mark(natural_numbers, max, k);
-        find_smallest(natural_numbers, max, &k);
+        mark(natural_numbers, sqrt_max, k);
+        find_smallest(natural_numbers, sqrt_max, &k);
     }
 
     /*
@@ -153,7 +149,7 @@ int main(int argc, char *argv[])
     if (rank != MASTER_NODE)
     {
         int *tmp_array = (int *)malloc(blk_size * sizeof(int)); // tmp array to send // BUG Does not work with char or uint8 arrays
-        memset(tmp_array, false, blk_size * sizeof(int));       // BUG memset does not set all the
+        memset(tmp_array, false, blk_size * sizeof(int));
         if (tmp_array == NULL)
         {
             printf("Error allocate memory!");
@@ -240,6 +236,6 @@ int main(int argc, char *argv[])
 
     free(natural_numbers);
     MPI_Finalize();
-    if(rank == 0)
+    if (rank == 0)
         printf("Elapsed %f\n", end_time - start_time);
 }
