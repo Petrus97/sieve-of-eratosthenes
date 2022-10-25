@@ -95,6 +95,8 @@ int main(int argc, char *argv[])
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     int comm_size = 1;
     MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
+    MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_ARE_FATAL); /* return info about errors */
+
     MPI_Barrier(MPI_COMM_WORLD); // To collect time correctly
     start_time = MPI_Wtime();
     uint64_t max;
@@ -157,8 +159,8 @@ int main(int argc, char *argv[])
     // Send the tmp array to the master node (that will concatenate)
     if (rank != MASTER_NODE)
     {
-        int *tmp_array = (int *)malloc(blk_size * sizeof(int)); // tmp array to send // BUG Does not work with char or uint8 arrays
-        memset(tmp_array, false, blk_size * sizeof(int));
+        char *tmp_array = (char *)malloc(blk_size * sizeof(char)); // tmp array to send
+        memset(tmp_array, false, blk_size * sizeof(char));
         if (tmp_array == NULL)
         {
             printf("Error allocate memory!");
@@ -178,7 +180,7 @@ int main(int argc, char *argv[])
             }
         }
         // Send the array
-        if (MPI_Send(tmp_array, blk_size, MPI_INT, MASTER_NODE, COMM_TAG, MPI_COMM_WORLD) != MPI_SUCCESS)
+        if (MPI_Send(tmp_array, blk_size, MPI_BYTE, MASTER_NODE, COMM_TAG, MPI_COMM_WORLD) != MPI_SUCCESS)
         {
             printf("[%d] failed to send to Master Node\n", rank);
         }
@@ -213,19 +215,19 @@ int main(int argc, char *argv[])
                 printf("Failed probing\n");
             // When probe returns, the status object has the size and other
             // attributes of the incoming message. Get the message size
-            ret = MPI_Get_count(&status, MPI_INT, &dim);
+            ret = MPI_Get_count(&status, MPI_BYTE, &dim); // The data type is the type of the data that should count
             if (ret != MPI_SUCCESS)
                 printf("Failed getting count\n");
             // printf("dim %d\n", dim);
 
             // allocates the memory and receive the array
-            int *tmp = (int *)malloc(dim * sizeof(int));
+            char *tmp = (char *)malloc(dim * sizeof(char));
             if (tmp == NULL)
             {
                 printf("Error allocate memory!");
             }
             // Receive the array in the allocated buffer
-            MPI_Recv(tmp, dim, MPI_INT, id, COMM_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            MPI_Recv(tmp, dim, MPI_BYTE, id, COMM_TAG, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
             // print_array(tmp, dim, start_idx);
             for (size_t i = 0; i < dim; i++)
             {
@@ -240,10 +242,10 @@ int main(int argc, char *argv[])
     MPI_Barrier(MPI_COMM_WORLD);
     end_time = MPI_Wtime();
     if (rank == 0)
+        printf("Elapsed %f\n", end_time - start_time);
+    if (rank == 0)
         print_primes(natural_numbers, max);
 
     free(natural_numbers);
     MPI_Finalize();
-    if (rank == 0)
-        printf("Elapsed %f\n", end_time - start_time);
 }
