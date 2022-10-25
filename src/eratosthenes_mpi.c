@@ -140,11 +140,15 @@ int main(int argc, char *argv[])
     /*
         1) Each process allocates the array of prime numbers and calculate the sqrt of them.
     */
-    uint64_t k = 2;
-    while (square(k) <= sqrt_max)
+    if (rank == MASTER_NODE)
     {
-        mark(natural_numbers, sqrt_max, k);
-        find_smallest(natural_numbers, sqrt_max, &k);
+        uint64_t k = 2;
+        while (square(k) <= sqrt_max)
+        {
+            mark(natural_numbers, sqrt_max, k);
+            find_smallest(natural_numbers, sqrt_max, &k);
+        }
+        MPI_Bcast(natural_numbers, sqrt_max + 1, MPI_BYTE, MASTER_NODE, MPI_COMM_WORLD); // All the other nodes will have the same values in natural_numbers
     }
 
     /*
@@ -170,8 +174,8 @@ int main(int argc, char *argv[])
             }
         }
     }
-    char* global_numbers = (char*)malloc(sizeof(char) * (max + 1));
-    MPI_Reduce(natural_numbers, global_numbers, max+1, MPI_BYTE, MPI_BOR, MASTER_NODE, MPI_COMM_WORLD);
+    char *global_numbers = (char *)malloc(sizeof(char) * (max + 1));
+    MPI_Reduce(natural_numbers, global_numbers, max + 1, MPI_BYTE, MPI_BOR, MASTER_NODE, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
     end_time = MPI_Wtime();
     if (rank == 0)
