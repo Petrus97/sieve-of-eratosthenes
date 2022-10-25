@@ -116,11 +116,20 @@ int main(int argc, char *argv[])
         0 (false) -> unmarked
         1 (true) -> marked
     */
-    char *natural_numbers = (char *)malloc((max + 1) * sizeof(char));
-    memset(natural_numbers, false, max + 1);
+    char *natural_numbers = NULL;
+    if (rank == MASTER_NODE) // Allocate all the array to collect the results later
+    {
+        natural_numbers = (char *)malloc((max + 1) * sizeof(char));
+        memset(natural_numbers, false, max + 1);
+    }
+    else // slave nodes only need the first numbers computed
+    {
+        natural_numbers = (char *)malloc((sqrt_max + 1) * sizeof(char));
+        memset(natural_numbers, false, sqrt_max + 1);
+    }
     if (natural_numbers == NULL)
     {
-        printf("Error allocating memory\n");
+        printf("[%d] Error allocating memory\n", rank);
     }
 
     // print_array(natural_numbers, max+1, rank);
@@ -163,7 +172,6 @@ int main(int argc, char *argv[])
                 {
                     if (i % j == 0)
                     {
-                        natural_numbers[i] = true;
                         tmp_array[i - start] = true;
                     }
                 }
