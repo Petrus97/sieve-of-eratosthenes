@@ -106,9 +106,11 @@ int main(int argc, char *argv[])
     int comm_size = 1;
     MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
     MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_ARE_FATAL); /* return info about errors */
-
-    MPI_Barrier(MPI_COMM_WORLD); // To collect time correctly
-    start_time = MPI_Wtime();
+    // Check processors by printing them
+    char name[32];
+    int len = 0;
+    MPI_Get_processor_name(name, &len);
+    printf("[%d] %s\n", rank, name);
     uint64_t max;
     if (argc < 2)
     {
@@ -143,7 +145,12 @@ int main(int argc, char *argv[])
     {
         printf("[%d] Error allocating memory\n", rank);
     }
-
+    // Wait everyone is ready
+    MPI_Barrier(MPI_COMM_WORLD);
+    /**
+     * Start Benchmark
+     */
+    start_time = MPI_Wtime();
     // print_array(natural_numbers, max+1, rank);
 
     /*

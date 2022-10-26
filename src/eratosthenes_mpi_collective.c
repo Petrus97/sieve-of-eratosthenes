@@ -106,9 +106,11 @@ int main(int argc, char *argv[])
     int comm_size = 1;
     MPI_Comm_size(MPI_COMM_WORLD, &comm_size);
     MPI_Comm_set_errhandler(MPI_COMM_WORLD, MPI_ERRORS_ARE_FATAL); /* return info about errors */
-
-    MPI_Barrier(MPI_COMM_WORLD); // To collect time correctly
-    start_time = MPI_Wtime();
+    // Check processors by printing them
+    char name[32];
+    int len = 0;
+    MPI_Get_processor_name(name, &len);
+    printf("[%d] %s\n", rank, name);
     uint64_t max;
     if (argc < 2)
     {
@@ -121,25 +123,28 @@ int main(int argc, char *argv[])
     {
         max = strtoul(argv[1], NULL, 10);
     }
-    // printf("%lu\n", max);
     uint64_t sqrt_max = (uint64_t)sqrt(max);
 
-    /* Create a list of natural numbers 1..Max
-        0 (false) -> unmarked
-        1 (true) -> marked
-    */
+    /** Create a list of natural numbers 1..Max
+     *  0 (false) -> unmarked
+     *   1 (true) -> marked
+     */
     char *natural_numbers = (char *)malloc(sizeof(char) * (max + 1));
     memset(natural_numbers, false, max + 1);
     if (natural_numbers == NULL)
     {
         printf("[%d] Error allocating memory\n", rank);
     }
-
-    // print_array(natural_numbers, max+1, rank);
-
-    /*
-        1) Each process allocates the array of prime numbers and calculate the sqrt of them.
-    */
+    // Wait that everyone is ready to do the computation
+    MPI_Barrier(MPI_COMM_WORLD);
+    /**
+     * Start Benchmark
+     */
+    start_time = MPI_Wtime();
+    /**
+     * The master process calculate prime numbers of the sqrt of MAX and broadcast to the results to the others processes
+     */
+#ifndef NOBCAST
     if (rank == MASTER_NODE)
     {
         uint64_t k = 2;
@@ -150,10 +155,18 @@ int main(int argc, char *argv[])
         }
         MPI_Bcast(natural_numbers, sqrt_max + 1, MPI_BYTE, MASTER_NODE, MPI_COMM_WORLD); // All the other nodes will have the same values in natural_numbers
     }
+#else // Every process calculates prime numbers on his own
+    uint64_t k = 2;
+    while (square(k) <= sqrt_max)
+    {
+        mark(natural_numbers, sqrt_max, k);
+        find_smallest(natural_numbers, sqrt_max, &k);
+    }
+#endif
 
-    /*
-        Calculation of the operating blocks for each process
-    */
+    /**
+     * Calculation of the operating blocks for each process
+     */
     uint64_t n = max - sqrt_max; // Remaining array
     uint64_t start = (sqrt_max + 1) + BLOCK_LOW(rank, comm_size, n);
     uint64_t end = (sqrt_max + 1) + BLOCK_HIGH(rank, comm_size, n);
@@ -174,7 +187,11 @@ int main(int argc, char *argv[])
             }
         }
     }
-    char *global_numbers = (char *)malloc(sizeof(char) * (max + 1));
+    char *global_numbers = NULL;
+    if (rank == MASTER_NODE)
+    {
+        global_numbers = (char *)malloc(sizeof(char) * (max + 1));
+    }
     MPI_Reduce(natural_numbers, global_numbers, max + 1, MPI_BYTE, MPI_BOR, MASTER_NODE, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
     end_time = MPI_Wtime();
@@ -184,6 +201,7 @@ int main(int argc, char *argv[])
         print_primes(global_numbers, max);
 
     free(natural_numbers);
-    free(global_numbers);
+    if (global_numbers != NULL)
+        free(global_numbers);
     MPI_Finalize();
 }

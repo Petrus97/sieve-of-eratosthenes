@@ -31,6 +31,9 @@ $(OBJS): $(OBJ_DIR)/%.o:$(SRC_DIR)/%.c
 mpi: CC:=$(MPICC)
 mpi: $(MPI_BINS)
 
+mpi-nobcast: CFLAGS += -DNOBCAST
+mpi-nobcast: mpi
+
 $(MPI_BINS): %: $(OBJ_DIR)/%.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) -I$(INC_DIR)
 
