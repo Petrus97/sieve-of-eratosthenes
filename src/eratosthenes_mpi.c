@@ -75,6 +75,16 @@ void print_primes(const char *n_numbers, uint64_t max)
         }
         printf("\n");
     }
+    else
+    {
+        int count = 0;
+        for (uint64_t i = 0; i < max; i++)
+        {
+            if (!n_numbers[i])
+                count++;
+        }
+        printf("prime count: %d\n", count);
+    }
 }
 
 void print_array(int *buf, int dim, int rank)
@@ -222,7 +232,6 @@ int main(int argc, char *argv[])
 
             // Overwrite the array
             MPI_Recv(natural_numbers + start_idx, dim, MPI_BYTE, id, COMM_TAG, MPI_COMM_WORLD, &status);
-            printf("Status count %ld dim %d\n", status._ucount, dim);
         }
     }
     MPI_Barrier(MPI_COMM_WORLD);
