@@ -2,4 +2,6 @@
 eratosthenes
 eratosthenes_pthread
 eratosthenes_openmp
+eratosthenes_mpi_collective
+eratosthenes_mpi
 objs/

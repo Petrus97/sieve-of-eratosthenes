@@ -62,6 +62,16 @@ void print_primes(const char *n_numbers, uint64_t max)
         }
         printf("\n");
     }
+    else
+    {
+        int count = 0;
+        for (uint64_t i = 0; i < max; i++)
+        {
+            if (!n_numbers[i])
+                count++;
+        }
+        printf("prime count: %d\n", count);
+    }
 }
 
 int main(int argc, char *argv[])

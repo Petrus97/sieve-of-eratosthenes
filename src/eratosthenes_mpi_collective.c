@@ -26,7 +26,7 @@
  *
  */
 
-const char *TAG = "MPI Send/Recv";
+const char *TAG = "MPI BCast/Reduce";
 
 void usage(void)
 {
@@ -123,122 +123,75 @@ int main(int argc, char *argv[])
     {
         max = strtoul(argv[1], NULL, 10);
     }
-    // printf("%lu\n", max);
     uint64_t sqrt_max = (uint64_t)sqrt(max);
 
-    /* Create a list of natural numbers 1..Max
-        0 (false) -> unmarked
-        1 (true) -> marked
-    */
-    char *natural_numbers = NULL;
-    if (rank == MASTER_NODE) // Allocate all the array to collect the results later
-    {
-        natural_numbers = (char *)malloc((max + 1) * sizeof(char));
-        memset(natural_numbers, false, max + 1);
-    }
-    else // slave nodes only need the first numbers computed
-    {
-        natural_numbers = (char *)malloc((sqrt_max + 1) * sizeof(char));
-        memset(natural_numbers, false, sqrt_max + 1);
-    }
+    /** Create a list of natural numbers 1..Max
+     *   0 (false) -> unmarked
+     *   1 (true) -> marked
+     */
+    char *natural_numbers = (char *)malloc(sizeof(char) * (max + 1));
+    memset(natural_numbers, false, max + 1);
     if (natural_numbers == NULL)
     {
         printf("[%d] Error allocating memory\n", rank);
     }
-    // Wait everyone is ready
+    // Wait that everyone is ready to do the computation
     MPI_Barrier(MPI_COMM_WORLD);
     /**
      * Start Benchmark
      */
     start_time = MPI_Wtime();
-    // print_array(natural_numbers, max+1, rank);
-
-    /*
-        1) Each process allocates the array of prime numbers and calculate the sqrt of them.
-    */
+    /**
+     * The master process calculate prime numbers of the sqrt of MAX and broadcast to the results to the others processes
+     */
+#ifndef NOBCAST
+    if (rank == MASTER_NODE)
+    {
+        uint64_t k = 2;
+        while (square(k) <= sqrt_max)
+        {
+            mark(natural_numbers, sqrt_max, k);
+            find_smallest(natural_numbers, sqrt_max, &k);
+        }
+        MPI_Bcast(natural_numbers, sqrt_max + 1, MPI_BYTE, MASTER_NODE, MPI_COMM_WORLD); // All the other nodes will have the same values in natural_numbers
+    }
+#else // Every process calculates prime numbers on his own
     uint64_t k = 2;
     while (square(k) <= sqrt_max)
     {
         mark(natural_numbers, sqrt_max, k);
         find_smallest(natural_numbers, sqrt_max, &k);
     }
+#endif
 
-    /*
-        Calculation of the operating blocks for each process
-    */
+    /**
+     * Calculation of the operating blocks for each process
+     */
     uint64_t n = max - sqrt_max; // Remaining array
     uint64_t start = (sqrt_max + 1) + BLOCK_LOW(rank, comm_size, n);
     uint64_t end = (sqrt_max + 1) + BLOCK_HIGH(rank, comm_size, n);
-    uint64_t blk_size = BLOCK_SIZE(rank, comm_size, n);
+    // uint64_t blk_size = BLOCK_SIZE(rank, comm_size, n);
 
     // printf("[%d] low: %ld high: %ld size: %ld\n", rank, start, end, blk_size);
 
-    // Send the tmp array to the master node (that will concatenate)
-    if (rank != MASTER_NODE)
+    for (uint64_t j = 2; j <= sqrt_max; j++)
     {
-        char *tmp_array = (char *)malloc(blk_size * sizeof(char)); // tmp array to send
-        memset(tmp_array, false, blk_size * sizeof(char));
-        if (tmp_array == NULL)
+        if (!natural_numbers[j]) // unmarked
         {
-            printf("Error allocate memory!");
-        }
-        // Each process calculate its prime numbers
-        for (uint64_t j = 2; j <= sqrt_max; j++)
-        {
-            if (!natural_numbers[j]) // unmarked
+            for (uint64_t i = start; i <= end; i++)
             {
-                for (uint64_t i = start; i <= end; i++)
+                if (i % j == 0)
                 {
-                    if (i % j == 0)
-                    {
-                        tmp_array[i - start] = true;
-                    }
+                    natural_numbers[i] = true;
                 }
             }
         }
-        // Send the array
-        if (MPI_Send(tmp_array, blk_size, MPI_BYTE, MASTER_NODE, COMM_TAG, MPI_COMM_WORLD) != MPI_SUCCESS)
-        {
-            printf("[%d] failed to send to Master Node\n", rank);
-        }
-        free(tmp_array);
     }
-    else // Master node
-    {
-        // Master process calculates its prima numbers
-        for (uint64_t j = 2; j <= sqrt_max; j++)
-        {
-            if (!natural_numbers[j]) // unmarked
-            {
-                for (uint64_t i = start; i <= end; i++)
-                {
-                    if (i % j == 0)
-                    {
-                        natural_numbers[i] = true;
-                    }
-                }
-            }
-        }
-        // Retrieve the value calculated from the other processes
-        for (int id = 1; id < comm_size; id++)
-        {
-            // printf("[%d] receiving from %d...\n", rank, id);
-            uint64_t start_idx = (sqrt_max + 1) + BLOCK_LOW(id, comm_size, n);
-            int dim;
-            MPI_Status status;
-            // Probe for an incoming message from slave process (blocking call)
-            int ret = MPI_Probe(id, COMM_TAG, MPI_COMM_WORLD, &status);
-            if (ret != MPI_SUCCESS)
-                printf("Failed probing\n");
-            // Get the message size stored inside the status parameter
-            ret = MPI_Get_count(&status, MPI_BYTE, &dim); // The datatype param is the type of counted data (i.e. MPI_INT 1 = 4 byte)
-            if (ret != MPI_SUCCESS)
-                printf("Failed getting count\n");
-
-            // Overwrite the array
-            MPI_Recv(natural_numbers + start_idx, dim, MPI_BYTE, id, COMM_TAG, MPI_COMM_WORLD, &status);
-        }
-    }
+    char *global_numbers = NULL;
+    if(rank == MASTER_NODE)
+        MPI_Reduce(MPI_IN_PLACE, natural_numbers, max + 1, MPI_BYTE, MPI_BOR, MASTER_NODE, MPI_COMM_WORLD);
+    else
+        MPI_Reduce(natural_numbers, global_numbers, max + 1, MPI_BYTE, MPI_BOR, MASTER_NODE, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
     end_time = MPI_Wtime();
     if (rank == 0)
@@ -248,5 +201,7 @@ int main(int argc, char *argv[])
     }
 
     free(natural_numbers);
+    if (global_numbers != NULL)
+        free(global_numbers);
     MPI_Finalize();
 }

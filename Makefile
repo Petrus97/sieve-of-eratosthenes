@@ -10,9 +10,9 @@ OBJ_DIR=./objs
 SRCS=$(wildcard $(SRC_DIR)/*.c)
 OBJS=$(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 
-MPI_BIN=eratosthenes_mpi
+MPI_BINS=eratosthenes_mpi eratosthenes_mpi_collective
 
-BINS := $(filter-out $(MPI_BIN), $(patsubst $(SRC_DIR)/%.c,%,$(SRCS)))
+BINS := $(filter-out $(MPI_BINS), $(patsubst $(SRC_DIR)/%.c,%,$(SRCS)))
 
 #
 # Sequential, Pthreads and OpenMP compilation
@@ -29,9 +29,12 @@ $(OBJS): $(OBJ_DIR)/%.o:$(SRC_DIR)/%.c
 # MPI compilation
 #
 mpi: CC:=$(MPICC)
-mpi: $(MPI_BIN)
+mpi: $(MPI_BINS)
 
-$(MPI_BIN): %: $(OBJ_DIR)/%.o
+mpi-nobcast: CFLAGS += -DNOBCAST
+mpi-nobcast: mpi
+
+$(MPI_BINS): %: $(OBJ_DIR)/%.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS) -I$(INC_DIR)
 
 
@@ -42,4 +45,4 @@ check:
 	cppcheck . -I $(INC_DIR)
 
 clean:
-	rm -rf $(BINS) $(MPI_BIN) $(OBJ_DIR)/*
+	rm -rf $(BINS) $(MPI_BINS) $(OBJ_DIR)/*
