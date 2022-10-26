@@ -226,16 +226,14 @@ int main(int argc, char *argv[])
             uint64_t start_idx = (sqrt_max + 1) + BLOCK_LOW(id, comm_size, n);
             int dim;
             MPI_Status status;
-            // Probe for an incoming message from slave process
+            // Probe for an incoming message from slave process (blocking call)
             int ret = MPI_Probe(id, COMM_TAG, MPI_COMM_WORLD, &status);
             if (ret != MPI_SUCCESS)
                 printf("Failed probing\n");
-            // When probe returns, the status object has the size and other
-            // attributes of the incoming message. Get the message size
-            ret = MPI_Get_count(&status, MPI_BYTE, &dim); // The data type is the type of the data that should count
+            // Get the message size stored inside the status parameter
+            ret = MPI_Get_count(&status, MPI_BYTE, &dim); // The datatype param is the type of counted data (i.e. MPI_INT 1 = 4 byte)
             if (ret != MPI_SUCCESS)
                 printf("Failed getting count\n");
-            // printf("dim %d\n", dim);
 
             // Overwrite the array
             MPI_Recv(natural_numbers + start_idx, dim, MPI_BYTE, id, COMM_TAG, MPI_COMM_WORLD, &status);
@@ -244,9 +242,10 @@ int main(int argc, char *argv[])
     MPI_Barrier(MPI_COMM_WORLD);
     end_time = MPI_Wtime();
     if (rank == 0)
+    {
         printf("Elapsed %f\n", end_time - start_time);
-    if (rank == 0)
         print_primes(natural_numbers, max);
+    }
 
     free(natural_numbers);
     MPI_Finalize();

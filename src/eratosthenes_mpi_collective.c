@@ -126,7 +126,7 @@ int main(int argc, char *argv[])
     uint64_t sqrt_max = (uint64_t)sqrt(max);
 
     /** Create a list of natural numbers 1..Max
-     *  0 (false) -> unmarked
+     *   0 (false) -> unmarked
      *   1 (true) -> marked
      */
     char *natural_numbers = (char *)malloc(sizeof(char) * (max + 1));
@@ -188,17 +188,17 @@ int main(int argc, char *argv[])
         }
     }
     char *global_numbers = NULL;
-    if (rank == MASTER_NODE)
-    {
-        global_numbers = (char *)malloc(sizeof(char) * (max + 1));
-    }
-    MPI_Reduce(natural_numbers, global_numbers, max + 1, MPI_BYTE, MPI_BOR, MASTER_NODE, MPI_COMM_WORLD);
+    if(rank == MASTER_NODE)
+        MPI_Reduce(MPI_IN_PLACE, natural_numbers, max + 1, MPI_BYTE, MPI_BOR, MASTER_NODE, MPI_COMM_WORLD);
+    else
+        MPI_Reduce(natural_numbers, global_numbers, max + 1, MPI_BYTE, MPI_BOR, MASTER_NODE, MPI_COMM_WORLD);
     MPI_Barrier(MPI_COMM_WORLD);
     end_time = MPI_Wtime();
     if (rank == 0)
+    {
         printf("Elapsed %f\n", end_time - start_time);
-    if (rank == 0)
-        print_primes(global_numbers, max);
+        print_primes(natural_numbers, max);
+    }
 
     free(natural_numbers);
     if (global_numbers != NULL)
