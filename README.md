@@ -46,3 +46,10 @@ or
 mpiexec --hostfile hosts ./eratosthenes_mpi_collective <max-number>
 ```
 where `hosts` contains the computing nodes which to connect with ssh.
+
+### References
+Slides provided by the course <b>Introduction to Parallel Programming</b> (1DL530) - Uppsala University<br>
+[OpenMP introduction](https://www.youtube.com/watch?v=nE-xN4Bf8XI&list=PLLX-Q6B8xqZ8n8bwjGdzBJ25X2utwnoEG)<br>
+Quinn, Michael J. Parallel Programming in C with MPI and OpenMP. Boston [etc.: McGraw-Hill Higher Education, 2003. Print.<br>
+https://rookiehpc.github.io/mpi/docs/<br>
+https://www.open-mpi.org/doc/v4.1<br>
