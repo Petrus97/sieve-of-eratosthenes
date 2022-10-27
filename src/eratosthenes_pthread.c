@@ -89,6 +89,7 @@ void *mark_chunk(void *parameters)
 {
     th_data *data = (th_data *)parameters;
     uint64_t sqrt_max = (uint64_t)sqrt(data->max);
+    // printf("%ld - %ld\n", data->start, data->end);
     for (uint64_t j = 2; j <= sqrt_max; j++)
     {
         if (!data->n_numbers[j]) // unmarked
@@ -130,7 +131,7 @@ int main(int argc, char *argv[])
     uint64_t k = 2;
     uint64_t sqrt_max = (uint64_t)sqrt(max);
     int chunk = (max - sqrt_max) / n_threads;
-    int remaining = max % n_threads;
+    int remaining = (max - sqrt_max) % n_threads;
 
     // BENCHMARK
     double start, end;
