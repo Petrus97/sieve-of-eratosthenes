@@ -6,7 +6,7 @@
 #include <math.h>
 #include <mpi.h>
 
-/** The following defines has been taken from:
+/** The following defines have been taken from:
     Parallel programming in C with MPI and OpenMP
     Michael J. Quinn
     Chapter: 5.4.3 Block Decomposition Macros
@@ -156,11 +156,23 @@ int main(int argc, char *argv[])
     /*
         1) Each process allocates the array of prime numbers and calculate the sqrt of them.
     */
-    uint64_t k = 2;
-    while (square(k) <= sqrt_max)
+    if (rank == MASTER_NODE)
     {
-        mark(natural_numbers, sqrt_max, k);
-        find_smallest(natural_numbers, sqrt_max, &k);
+        uint64_t k = 2;
+        while (square(k) <= sqrt_max)
+        {
+            mark(natural_numbers, sqrt_max, k);
+            find_smallest(natural_numbers, sqrt_max, &k);
+        }
+        for (size_t i = 1; i < comm_size; i++)
+        {
+            MPI_Send(natural_numbers, sqrt_max + 1, MPI_BYTE, i, COMM_TAG, MPI_COMM_WORLD);
+        }
+    }
+    else
+    {
+        MPI_Status status;
+        MPI_Recv(natural_numbers, sqrt_max + 1, MPI_BYTE, MASTER_NODE, COMM_TAG, MPI_COMM_WORLD, &status);
     }
 
     /*

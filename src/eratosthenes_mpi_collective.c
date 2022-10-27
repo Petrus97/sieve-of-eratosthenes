@@ -6,7 +6,7 @@
 #include <math.h>
 #include <mpi.h>
 
-/** The following defines has been taken from:
+/** The following defines have been taken from:
     Parallel programming in C with MPI and OpenMP
     Michael J. Quinn
     Chapter: 5.4.3 Block Decomposition Macros
